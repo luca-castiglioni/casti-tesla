@@ -13,7 +13,7 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - `npm run dev` — locale (porta 5174 con `.claude/launch.json`); `?demo` = dati inventati senza database
 - `npm run build` — controllo tipi + build
 - `npm test` — test dei calcoli (`src/calcoli.test.ts`)
-- `supabase functions deploy leggi_shelly --use-api` — pubblica la Edge Function
+- `supabase functions deploy <nome> --remote=oqedsmomrbmdbbzooafd --use-api --yes` — pubblica una Edge Function (`leggi_shelly`, `gestisci_utenti`)
 
 ## Come arrivano i dati
 - Shelly EM Gen1 `192.168.1.68`, nome "Energia wallbox", id cloud `c4d8d5001868`, canale 1 (indice 0) = wallbox.
@@ -33,6 +33,7 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 
 ## Permessi (RLS)
 - Tutti gli utenti collegati vedono tutto. `letture` le scrive solo la Edge Function (service key).
+- Utenti: li gestisce l'admin dall'app (Impostazioni → Utenti) tramite la Edge Function `gestisci_utenti` (crea, elimina, ruolo admin). Ognuno cambia la propria password in Impostazioni.
 - `km`: tutti inseriscono; modifica/elimina chi l'ha inserito o l'admin. `prezzi` e `impostazioni`: solo admin.
 
 ## Sicurezza

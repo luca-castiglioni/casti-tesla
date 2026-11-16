@@ -119,6 +119,46 @@ export async function aggiungiKm(data: string, km: number) {
   await esegui(supabase.from('km').insert({ data, km }))
 }
 
+// ---------- Utenti ----------
+
+let utentiDemo: Profilo[] = [{ id: 'demo', email: 'demo@esempio.it', nome: 'Demo', is_admin: true }]
+
+export async function caricaUtenti(): Promise<Profilo[]> {
+  if (demo) return utentiDemo
+  return controlla(await supabase.from('profiles').select('id, email, nome, is_admin').order('nome'))
+}
+
+// Chiama la Edge Function gestisci_utenti (solo admin); errore = messaggio in italiano
+async function gestisciUtenti(corpo: object) {
+  const { error } = await supabase.functions.invoke('gestisci_utenti', { body: corpo })
+  if (!error) return
+  const dettaglio = await (error as { context?: Response }).context?.json?.().catch(() => null)
+  throw new Error(dettaglio?.errore ?? 'Servizio non raggiungibile, riprova.')
+}
+
+export async function creaUtente(email: string, password: string, nome: string) {
+  if (demo) return void utentiDemo.push({ id: crypto.randomUUID(), email, nome, is_admin: false })
+  await gestisciUtenti({ azione: 'crea', email, password, nome })
+}
+
+export async function eliminaUtente(id: string) {
+  if (demo) return void (utentiDemo = utentiDemo.filter((u) => u.id !== id))
+  await gestisciUtenti({ azione: 'elimina', id })
+}
+
+export async function impostaAdmin(id: string, is_admin: boolean) {
+  if (demo) return void (utentiDemo = utentiDemo.map((u) => (u.id === id ? { ...u, is_admin } : u)))
+  await gestisciUtenti({ azione: 'admin', id, is_admin })
+}
+
+export async function cambiaPassword(email: string, attuale: string, nuova: string) {
+  if (demo) return
+  const { error: erroreVerifica } = await supabase.auth.signInWithPassword({ email, password: attuale })
+  if (erroreVerifica) throw new Error('La password attuale non è corretta.')
+  const { error } = await supabase.auth.updateUser({ password: nuova })
+  if (error) throw new Error('Impossibile cambiare la password: ' + error.message)
+}
+
 export async function eliminaKm(id: string) {
   if (demo) return void (datiDemo!.km = datiDemo!.km.filter((k) => k.id !== id))
   await esegui(supabase.from('km').delete().eq('id', id).select('id'), true)

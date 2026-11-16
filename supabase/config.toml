@@ -6,3 +6,9 @@ enabled = true
 # l'accesso lo controlla la funzione stessa (@supabase/server, chiave publishable)
 verify_jwt = false
 import_map = "./functions/leggi_shelly/deno.json"
+
+[functions.gestisci_utenti]
+enabled = true
+# l'accesso lo controlla la funzione (utente collegato + amministratore)
+verify_jwt = false
+import_map = "./functions/gestisci_utenti/deno.json"

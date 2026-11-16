@@ -2,11 +2,60 @@ import { useState, type FormEvent } from 'react'
 import { prezzoDel, type Giorno } from '../calcoli'
 import { scaricaExcel } from '../export'
 import { formatData, formatEuroFine, formatNumero, oggi, parseNumero } from '../format'
-import { aggiungiPrezzo, demo, eliminaPrezzo, salvaImpostazioni, supabase } from '../supabase'
+import { aggiungiPrezzo, cambiaPassword, demo, eliminaPrezzo, salvaImpostazioni, supabase } from '../supabase'
 import type { Dati, Profilo } from '../types'
 import { IconaCestino, IconaFreccia } from './Icone'
+import Utenti from './Utenti'
 
-type Sottomenu = null | 'iniziali' | 'prezzi'
+function CambiaPassword({ email, onIndietro }: { email: string; onIndietro: () => void }) {
+  const [attuale, setAttuale] = useState('')
+  const [nuova, setNuova] = useState('')
+  const [conferma, setConferma] = useState('')
+  const [messaggio, setMessaggio] = useState<{ ok: boolean; testo: string } | null>(null)
+  const [attesa, setAttesa] = useState(false)
+
+  async function salva(e: FormEvent) {
+    e.preventDefault()
+    if (nuova.length < 6) return setMessaggio({ ok: false, testo: 'La nuova password deve avere almeno 6 caratteri.' })
+    if (nuova !== conferma) return setMessaggio({ ok: false, testo: 'Le due nuove password non coincidono.' })
+    setAttesa(true)
+    try {
+      await cambiaPassword(email, attuale, nuova)
+      setAttuale('')
+      setNuova('')
+      setConferma('')
+      setMessaggio({ ok: true, testo: 'Password cambiata.' })
+    } catch (err) {
+      setMessaggio({ ok: false, testo: (err as Error).message })
+    } finally {
+      setAttesa(false)
+    }
+  }
+
+  return (
+    <>
+      <TestataSottomenu titolo="Cambia password" onIndietro={onIndietro} />
+      <form className="scheda modulo" onSubmit={salva}>
+        <label>
+          Password attuale
+          <input type="password" value={attuale} onChange={(e) => setAttuale(e.target.value)} autoComplete="current-password" required />
+        </label>
+        <label>
+          Nuova password
+          <input type="password" value={nuova} onChange={(e) => setNuova(e.target.value)} autoComplete="new-password" required />
+        </label>
+        <label>
+          Ripeti la nuova password
+          <input type="password" value={conferma} onChange={(e) => setConferma(e.target.value)} autoComplete="new-password" required />
+        </label>
+        {messaggio && <p className={messaggio.ok ? 'successo' : 'errore'}>{messaggio.testo}</p>}
+        <button className="pulsante primario" disabled={attesa}>{attesa ? 'Salvataggio…' : 'Cambia password'}</button>
+      </form>
+    </>
+  )
+}
+
+type Sottomenu = null | 'iniziali' | 'prezzi' | 'utenti' | 'password'
 
 interface Props {
   dati: Dati
@@ -22,6 +71,10 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
 
   if (menu === 'iniziali') return <ValoriIniziali dati={dati} admin={admin} onIndietro={() => setMenu(null)} onCambiato={onCambiato} />
   if (menu === 'prezzi') return <Prezzi dati={dati} admin={admin} onIndietro={() => setMenu(null)} onCambiato={onCambiato} />
+  if (menu === 'utenti' && profilo)
+    return <Utenti io={profilo} testata={<TestataSottomenu titolo="Utenti" onIndietro={() => setMenu(null)} />} />
+  if (menu === 'password' && profilo)
+    return <CambiaPassword email={profilo.email} onIndietro={() => setMenu(null)} />
 
   const imp = dati.impostazioni
   async function esporta() {
@@ -63,6 +116,18 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
             <IconaFreccia />
           </button>
         </li>
+        {admin && (
+          <li>
+            <button onClick={() => setMenu('utenti')}>
+              <span className="bollino rosa">👤</span>
+              <div className="voce-testo">
+                <strong>Utenti</strong>
+                <small>Aggiungi familiari, ruoli</small>
+              </div>
+              <IconaFreccia />
+            </button>
+          </li>
+        )}
         <li>
           <button onClick={esporta}>
             <span className="bollino verde">⇩</span>
@@ -85,6 +150,9 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
             {admin ? ' · amministratore' : ''}
           </small>
         </div>
+        <button className="pulsante piccolo" onClick={() => setMenu('password')}>
+          Password
+        </button>
         {!demo && (
           <button className="pulsante piccolo" onClick={() => supabase.auth.signOut()}>
             Esci
