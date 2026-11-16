@@ -1,0 +1,445 @@
+/* Casti Tesla — tema scuro "elettrico" con colori vivaci */
+:root {
+  --sfondo: #070b18;
+  --superficie: rgba(22, 29, 52, 0.72);
+  --superficie-piena: #141b33;
+  --bordo: rgba(148, 163, 255, 0.14);
+  --testo: #eef1ff;
+  --testo-tenue: #98a2c8;
+  --ciano: #22d3ee;
+  --viola: #a78bfa;
+  --verde: #34d399;
+  --ambra: #fbbf24;
+  --rosa: #f472b6;
+  --blu: #60a5fa;
+  --rosso: #f87171;
+  --raggio: 18px;
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--sfondo); }
+body { margin: 0; color: var(--testo); font-size: 16px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+input, select { font: inherit; }
+h1, h2, h3 { margin: 0; }
+code { font-size: 14px; }
+.tenue { color: var(--testo-tenue); }
+
+/* Macchie di colore sfocate dietro a tutto */
+.sfondo-colori {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40rem 30rem at 110% -10%, rgba(167, 139, 250, 0.28), transparent 60%),
+    radial-gradient(35rem 28rem at -20% 20%, rgba(34, 211, 238, 0.20), transparent 60%),
+    radial-gradient(30rem 25rem at 50% 120%, rgba(244, 114, 182, 0.16), transparent 60%),
+    var(--sfondo);
+}
+
+/* ---------- Struttura ---------- */
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top) 16px calc(92px + env(safe-area-inset-bottom));
+}
+
+.testata {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 0 14px;
+  flex-wrap: wrap;
+}
+.testata h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.testata small { color: var(--testo-tenue); }
+.testata .indietro { width: 100%; text-align: left; padding: 0; }
+
+.scheda {
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.titolo-sezione {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--testo-tenue);
+  margin: 22px 4px 10px;
+}
+
+.vuoto { text-align: center; color: var(--testo-tenue); padding: 40px 0; }
+.errore { color: var(--rosso); margin: 0; font-size: 14px; }
+.successo { color: var(--verde); margin: 0; font-size: 14px; }
+.errore.riquadro {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-top: 12px;
+}
+.nota-piccola { color: var(--testo-tenue); font-size: 13px; margin: 8px 4px 0; }
+.spiegazione { color: var(--testo-tenue); font-size: 15px; line-height: 1.45; margin: 0 4px 14px; }
+.banda-demo {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1033;
+  background: linear-gradient(90deg, var(--ambra), var(--rosa));
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+/* ---------- Pulsanti ---------- */
+.pulsante {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+.pulsante.primario {
+  background: linear-gradient(135deg, var(--ciano), var(--viola));
+  color: #0b0f24;
+  box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
+}
+.pulsante:disabled { opacity: 0.6; }
+.pulsante.piccolo {
+  padding: 8px 14px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--bordo);
+}
+.link { background: none; border: none; color: var(--ciano); padding: 0; font-weight: 600; }
+
+.pulsante-tondo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--bordo);
+  background: var(--superficie);
+  display: grid;
+  place-items: center;
+}
+.pulsante-tondo svg { width: 20px; height: 20px; }
+.pulsante-tondo.gira svg { animation: gira 0.9s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+.pulsante-icona {
+  background: none;
+  border: none;
+  color: var(--testo-tenue);
+  padding: 8px;
+  border-radius: 10px;
+}
+.pulsante-icona svg { width: 20px; height: 20px; }
+
+.avviso {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--ambra);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---------- Potenza in tempo reale ---------- */
+.live {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  overflow: hidden;
+  position: relative;
+}
+.live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(34, 211, 238, 0.12), rgba(167, 139, 250, 0.08) 50%, transparent);
+  pointer-events: none;
+}
+.anello { width: 112px; height: 112px; flex: none; transform: rotate(-90deg); }
+.anello-fondo { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 10; }
+.anello-valore {
+  fill: none;
+  stroke: url(#grad-anello);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.8s ease;
+}
+.live.in-carica .anello { filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.55)); animation: pulsa 2.4s ease-in-out infinite; }
+@keyframes pulsa { 50% { filter: drop-shadow(0 0 18px rgba(167, 139, 250, 0.7)); } }
+.live-testo { display: flex; flex-direction: column; gap: 4px; min-width: 0; z-index: 1; }
+.live-testo strong { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.live-testo small { color: var(--testo-tenue); font-size: 13px; }
+.stato {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--testo-tenue);
+}
+.stato.on { background: rgba(52, 211, 153, 0.18); color: var(--verde); }
+
+/* ---------- Tessere dei totali ---------- */
+.griglia-tessere { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tessera {
+  border-radius: var(--raggio);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--bordo);
+  background: var(--superficie);
+  position: relative;
+  overflow: hidden;
+}
+.tessera::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--colore);
+}
+.tessera small { color: var(--testo-tenue); font-size: 12px; font-weight: 600; }
+.tessera strong { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tessera .nota-tessera { color: var(--testo-tenue); font-size: 12px; margin-top: -2px; }
+.tessera.grande {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.35), rgba(34, 211, 238, 0.18));
+}
+.tessera.grande::before { display: none; }
+.tessera.grande strong { font-size: 34px; }
+.tessera.viola { --colore: var(--viola); }
+.tessera.ciano { --colore: var(--ciano); }
+.tessera.verde { --colore: var(--verde); }
+.tessera.ambra { --colore: var(--ambra); }
+.tessera.rosa { --colore: var(--rosa); }
+.tessera.blu { --colore: var(--blu); }
+
+.riga-periodi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+.mini-periodo {
+  text-align: left;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.mini-periodo small { color: var(--testo-tenue); font-weight: 600; font-size: 12px; }
+.mini-periodo strong { font-size: 22px; font-weight: 800; color: var(--viola); }
+
+/* ---------- Grafici ---------- */
+.segmenti {
+  display: flex;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bordo);
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 10px;
+}
+.segmenti button {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 10px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: var(--testo-tenue);
+}
+.segmenti button.attivo { background: linear-gradient(135deg, var(--ciano), var(--viola)); color: #0b0f24; }
+.segmenti.piccoli button { padding: 7px 4px; font-size: 14px; }
+.segmenti.piccoli button.attivo { background: rgba(255, 255, 255, 0.14); color: var(--testo); }
+
+.grafico-contenitore { padding: 14px 10px 8px; }
+.titolo-grafico { font-size: 15px; margin: 0 6px 6px; }
+.grafico { width: 100%; height: auto; display: block; }
+.grafico .griglia { stroke: rgba(255, 255, 255, 0.07); stroke-dasharray: 3 4; }
+.grafico .asse { stroke: rgba(255, 255, 255, 0.18); }
+.grafico .barra { cursor: pointer; }
+.grafico .barra path { transition: opacity 0.2s; }
+.valore-barra { fill: var(--testo); font-size: 12px; font-weight: 700; }
+.etichetta-asse { fill: var(--testo-tenue); font-size: 10px; }
+.etichetta-asse.attiva { fill: var(--testo); font-weight: 700; }
+
+.dettaglio-periodo { padding: 16px; margin-top: 12px; }
+.dettaglio-periodo h3 { font-size: 16px; margin-bottom: 12px; }
+.dettaglio-griglia { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.dettaglio-griglia div { display: flex; flex-direction: column; gap: 2px; }
+.dettaglio-griglia small { color: var(--testo-tenue); font-size: 12px; }
+.dettaglio-griglia strong { font-size: 19px; font-variant-numeric: tabular-nums; }
+.testo-viola { color: var(--viola); }
+.testo-ambra { color: var(--ambra); }
+.testo-rosa { color: var(--rosa); }
+.testo-ciano { color: var(--ciano); }
+
+.tabella-contenitore { overflow: hidden; }
+.tabella { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tabella th {
+  text-align: right;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--testo-tenue);
+  padding: 10px 12px;
+}
+.tabella td { text-align: right; padding: 10px 12px; border-top: 1px solid var(--bordo); }
+.tabella th:first-child, .tabella td:first-child { text-align: left; }
+.tabella tr.scelta td { background: rgba(167, 139, 250, 0.12); }
+
+/* ---------- Elenchi ---------- */
+.titolo-mese {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  margin: 20px 4px 8px;
+}
+.titolo-mese .tenue { font-size: 12px; font-weight: 500; }
+
+.elenco-ricariche, .elenco-semplice, .menu-voci { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+.elenco-ricariche li, .elenco-semplice li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.elenco-ricariche li + li, .elenco-semplice li + li, .menu-voci li + li { border-top: 1px solid var(--bordo); }
+.voce-testo { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.voce-testo small { color: var(--testo-tenue); font-size: 13px; }
+.voce-valori { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-variant-numeric: tabular-nums; }
+.voce-valori strong { color: var(--viola); }
+.voce-valori small { color: var(--ambra); font-size: 13px; }
+
+.bollino {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(167, 139, 250, 0.25));
+  color: var(--ciano);
+}
+.bollino.viola { background: rgba(167, 139, 250, 0.2); color: var(--viola); }
+.bollino.ciano { background: rgba(34, 211, 238, 0.18); color: var(--ciano); }
+.bollino.verde { background: rgba(52, 211, 153, 0.18); color: var(--verde); }
+
+.menu-voci button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: none;
+  border: none;
+  text-align: left;
+}
+.menu-voci button > svg { width: 18px; height: 18px; color: var(--testo-tenue); }
+
+.account { display: flex; align-items: center; gap: 12px; padding: 14px; }
+
+/* ---------- Moduli ---------- */
+.modulo { display: flex; flex-direction: column; gap: 14px; padding: 16px; margin-bottom: 4px; }
+.modulo label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--testo-tenue); min-width: 0; }
+.modulo label small { font-weight: 400; font-size: 12px; }
+.modulo input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--bordo);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--testo);
+  font-size: 17px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.modulo input:focus { outline: 2px solid var(--viola); outline-offset: 1px; }
+.modulo input:disabled { opacity: 0.6; }
+.riga-campi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ---------- Barra delle schede in basso ---------- */
+.barra-schede {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(10, 14, 30, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--bordo);
+  z-index: 10;
+}
+.barra-schede button {
+  flex: 1;
+  max-width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--testo-tenue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.barra-schede svg { width: 24px; height: 24px; }
+.barra-schede button.attiva { color: var(--ciano); }
+.barra-schede button.attiva svg { filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.6)); }
+
+/* ---------- Accesso ---------- */
+.schermata-centrale {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px;
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+.schermata-centrale .scheda { width: 100%; text-align: left; }
+.schermata-centrale .testo { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.schermata-centrale .testo p { margin: 0; line-height: 1.45; }
+.logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  font-size: 44px;
+  background: linear-gradient(135deg, var(--ciano), var(--viola));
+  box-shadow: 0 12px 36px rgba(124, 92, 255, 0.45);
+}
+.schermata-centrale h1 { font-size: 30px; font-weight: 800; }
+.sottotitolo { color: var(--testo-tenue); margin: 0 0 8px; }
+.nota { color: var(--testo-tenue); font-size: 13px; }

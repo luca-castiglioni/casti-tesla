@@ -1,0 +1,8 @@
+# Configurazione minima per la CLI di Supabase (serve solo a pubblicare la Edge Function)
+project_id = "casti_tesla"
+
+[functions.leggi_shelly]
+enabled = true
+# l'accesso lo controlla la funzione stessa (@supabase/server, chiave publishable)
+verify_jwt = false
+import_map = "./functions/leggi_shelly/deno.json"
