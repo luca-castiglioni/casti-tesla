@@ -1,6 +1,28 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "casti-tesla", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5174"], "port": 5174 }
+    {
+      "name": "casti-tesla",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "casti-tesla-build",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4174"
+      ],
+      "port": 4174
+    }
   ]
 }
