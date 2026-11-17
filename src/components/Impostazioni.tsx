@@ -252,7 +252,7 @@ function EsitoProva({ e }: { e: EsitoProvaTesla }) {
   if (e.attivo === false) return <p className="errore">{e.motivo}</p>
   const righe = [
     `Auto: ${e.stato_auto === 'online' ? 'sveglia' : e.stato_auto === 'asleep' ? 'addormentata' : (e.stato_auto ?? '?')}`,
-    e.km != null ? `Contachilometri: ${formatNumero(e.km)} km` : 'Contachilometri: non letto (l\'auto dorme: lo leggerò alla prossima ricarica)',
+    e.km != null ? `Contachilometri: ${formatNumero(e.km)} km${e.km_rilevato ? ` (rilevato ${e.km_rilevato})` : ''}` : 'Contachilometri: non letto (l\'auto dorme: lo leggerò alla prossima ricarica)',
     e.sessioni_supercharger !== undefined ? `Ricariche Supercharger trovate: ${e.sessioni_supercharger}` : null,
     e.esempio ? `Esempio: ${e.esempio.kwh ?? '?'} kWh, ${e.esempio.euro} ${e.esempio.valuta ?? ''}` : null,
     e.campi_costo?.length ? `Campi costo: ${e.campi_costo.join(', ')}` : null,

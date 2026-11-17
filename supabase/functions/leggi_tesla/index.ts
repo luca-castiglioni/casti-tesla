@@ -66,15 +66,21 @@ async function auto(): Promise<Auto> {
   return elenco[0]
 }
 
-// Contachilometri in km (Tesla lo dà in miglia). null se l'auto non è sveglia.
-async function contachilometri(a: Auto): Promise<number | null> {
+function ora(ms: number): string {
+  return new Date(ms).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+// Contachilometri in km (Tesla lo dà in miglia) e quando è stato rilevato dall'auto.
+// null se l'auto non è sveglia.
+async function contachilometri(a: Auto): Promise<{ km: number; quando: number | null } | null> {
   if (a.state !== 'online') return null
   const dati = (await tesla(`/api/1/vehicles/${a.vin}/vehicle_data?endpoints=vehicle_state`)).response as
-    | { vehicle_state?: { odometer?: number } }
+    | { vehicle_state?: { odometer?: number; timestamp?: number } }
     | undefined
   const miglia = dati?.vehicle_state?.odometer
   if (typeof miglia !== 'number' || miglia <= 0) throw new ErroreTesla('La Tesla non ha restituito il contachilometri.')
-  return Math.round(miglia * MIGLIA_KM * 10) / 10
+  const t = Number(dati?.vehicle_state?.timestamp)
+  return { km: Math.round(miglia * MIGLIA_KM * 10) / 10, quando: Number.isFinite(t) && t > 0 ? t : null }
 }
 
 interface Sessione {
@@ -165,14 +171,24 @@ export default {
     // 1. Contachilometri
     if (prova || (inCarica && kmVecchi)) {
       try {
-        const km = await contachilometri(a)
-        esito.km = km
-        if (km !== null) {
-          const { data: massimo } = await admin.from('km').select('km').order('km', { ascending: false }).limit(1).maybeSingle()
-          if (!massimo || km >= Number(massimo.km)) {
-            const { error } = await admin.from('km').insert({ data: giornoItaliano(new Date()), km, fonte: 'tesla', created_by: null })
-            if (error) throw new Error('Errore del database: ' + error.message)
+        const letto = await contachilometri(a)
+        esito.km = letto?.km ?? null
+        if (letto?.quando) esito.km_rilevato = ora(letto.quando)
+        if (letto) {
+          const { km, quando } = letto
+          // A volte il ponte restituisce un dato vecchio (salvato ore prima): non lo considero una lettura
+          // riuscita, così riprovo al prossimo giro (solo mentre l'auto carica).
+          if (quando && adesso - quando > 30 * 60_000) {
+            throw new Error(`La Tesla ha dato ${km.toLocaleString('it-IT')} km ma è un dato vecchio (delle ${ora(quando)}): riprovo più tardi.`)
           }
+          const { data: massimo } = await admin.from('km').select('km').order('km', { ascending: false }).limit(1).maybeSingle()
+          if (massimo && km < Number(massimo.km)) {
+            throw new Error(
+              `La Tesla ha dato ${km.toLocaleString('it-IT')} km, meno dell'ultima lettura (${Number(massimo.km).toLocaleString('it-IT')}): riprovo più tardi.`,
+            )
+          }
+          const { error } = await admin.from('km').insert({ data: giornoItaliano(new Date()), km, fonte: 'tesla', created_by: null })
+          if (error) throw new Error('Errore del database: ' + error.message)
           aggiorna.ultimo_km = new Date().toISOString()
         }
       } catch (e) {
