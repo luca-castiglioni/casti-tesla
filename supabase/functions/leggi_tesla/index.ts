@@ -93,14 +93,15 @@ async function contachilometri(a: Auto): Promise<
   const miglia = dati?.vehicle_state?.odometer
   if (typeof miglia !== 'number' || miglia <= 0) throw new ErroreTesla('La Tesla non ha restituito il contachilometri.')
   const t = Number(dati?.vehicle_state?.timestamp)
+  // breve, per poterla copiare dal telefono
   const diagnostica = {
-    campi_risposta: Object.keys(json),
-    campi_auto: Object.keys(dati ?? {}),
-    campi_vehicle_state: Object.keys(dati?.vehicle_state ?? {}),
-    orari_risposta: { ...orari(json), ...orari(dati as Record<string, unknown>) },
-    orari_vehicle_state: orari(dati?.vehicle_state as Record<string, unknown>),
-    orari_charge_state: orari(dati?.charge_state),
-    stato_ricarica: dati?.charge_state?.charging_state ?? null,
+    ora_ora: ora(Date.now()),
+    auto: orari(dati as Record<string, unknown>),
+    vehicle_state: orari(dati?.vehicle_state as Record<string, unknown>),
+    charge_state: orari(dati?.charge_state),
+    ricarica: dati?.charge_state?.charging_state ?? null,
+    kwh_aggiunti: dati?.charge_state?.charge_energy_added ?? null,
+    stato: (dati as { state?: string } | undefined)?.state ?? null,
   }
   return { km: Math.round(miglia * MIGLIA_KM * 10) / 10, quando: Number.isFinite(t) && t > 0 ? t : null, diagnostica }
 }
