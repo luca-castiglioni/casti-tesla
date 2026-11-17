@@ -261,6 +261,12 @@ function EsitoProva({ e }: { e: EsitoProvaTesla }) {
     <div>
       {righe.map((r) => <p key={r} className="successo">{r}</p>)}
       {e.errori?.map((r) => <p key={r} className="errore">{r}</p>)}
+      {e.diagnostica && (
+        <details className="nota-piccola">
+          <summary>Dettagli tecnici</summary>
+          <pre className="diagnostica">{JSON.stringify(e.diagnostica, null, 1)}</pre>
+        </details>
+      )}
     </div>
   )
 }

@@ -469,3 +469,4 @@ code { font-size: 14px; }
 .schermata-centrale h1 { font-size: 30px; font-weight: 800; }
 .sottotitolo { color: var(--testo-tenue); margin: 0 0 8px; }
 .nota { color: var(--testo-tenue); font-size: 13px; }
+.diagnostica { white-space: pre-wrap; word-break: break-all; font-size: 11px; user-select: text; }

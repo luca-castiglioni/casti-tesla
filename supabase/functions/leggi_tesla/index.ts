@@ -72,15 +72,37 @@ function ora(ms: number): string {
 
 // Contachilometri in km (Tesla lo dà in miglia) e quando è stato rilevato dall'auto.
 // null se l'auto non è sveglia.
-async function contachilometri(a: Auto): Promise<{ km: number; quando: number | null } | null> {
+// Per la diagnostica: solo nomi dei campi e valori che sembrano orari (nessun dato personale)
+function orari(o: Record<string, unknown> | undefined): Record<string, string> {
+  const r: Record<string, string> = {}
+  for (const [k, v] of Object.entries(o ?? {})) {
+    const n = Number(v)
+    if (/time|stamp|date/i.test(k) && Number.isFinite(n) && n > 1e9) r[k] = ora(n < 1e12 ? n * 1000 : n)
+  }
+  return r
+}
+
+async function contachilometri(a: Auto): Promise<
+  { km: number; quando: number | null; diagnostica: Record<string, unknown> } | null
+> {
   if (a.state !== 'online') return null
-  const dati = (await tesla(`/api/1/vehicles/${a.vin}/vehicle_data?endpoints=vehicle_state`)).response as
-    | { vehicle_state?: { odometer?: number; timestamp?: number } }
+  const json = await tesla(`/api/1/vehicles/${a.vin}/vehicle_data?endpoints=vehicle_state%3Bcharge_state`)
+  const dati = json.response as
+    | { vehicle_state?: { odometer?: number; timestamp?: number }; charge_state?: Record<string, unknown> }
     | undefined
   const miglia = dati?.vehicle_state?.odometer
   if (typeof miglia !== 'number' || miglia <= 0) throw new ErroreTesla('La Tesla non ha restituito il contachilometri.')
   const t = Number(dati?.vehicle_state?.timestamp)
-  return { km: Math.round(miglia * MIGLIA_KM * 10) / 10, quando: Number.isFinite(t) && t > 0 ? t : null }
+  const diagnostica = {
+    campi_risposta: Object.keys(json),
+    campi_auto: Object.keys(dati ?? {}),
+    campi_vehicle_state: Object.keys(dati?.vehicle_state ?? {}),
+    orari_risposta: { ...orari(json), ...orari(dati as Record<string, unknown>) },
+    orari_vehicle_state: orari(dati?.vehicle_state as Record<string, unknown>),
+    orari_charge_state: orari(dati?.charge_state),
+    stato_ricarica: dati?.charge_state?.charging_state ?? null,
+  }
+  return { km: Math.round(miglia * MIGLIA_KM * 10) / 10, quando: Number.isFinite(t) && t > 0 ? t : null, diagnostica }
 }
 
 interface Sessione {
@@ -174,6 +196,7 @@ export default {
         const letto = await contachilometri(a)
         esito.km = letto?.km ?? null
         if (letto?.quando) esito.km_rilevato = ora(letto.quando)
+        if (prova && letto) esito.diagnostica = letto.diagnostica
         if (letto) {
           const { km, quando } = letto
           // A volte il ponte restituisce un dato vecchio (salvato ore prima): non lo considero una lettura

@@ -182,6 +182,7 @@ export interface EsitoProvaTesla {
   stato_auto?: string
   km?: number | null
   km_rilevato?: string
+  diagnostica?: Record<string, unknown>
   sessioni_supercharger?: number
   campi_sessione?: string[]
   campi_costo?: string[]
