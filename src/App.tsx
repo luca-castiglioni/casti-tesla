@@ -106,7 +106,7 @@ function Principale({ userId }: { userId: string }) {
             />
           )}
           {scheda === 'grafici' && <Grafici giorni={giorni} />}
-          {scheda === 'ricariche' && <Ricariche dati={dati} />}
+          {scheda === 'ricariche' && <Ricariche dati={dati} userId={userId} admin={admin} onCambiato={ricarica} />}
           {scheda === 'km' && <PaginaKm dati={dati} userId={userId} admin={admin} onCambiato={ricarica} />}
           {scheda === 'impostazioni' && (
             <Impostazioni dati={dati} giorni={giorni} profilo={profilo} onCambiato={ricarica} />

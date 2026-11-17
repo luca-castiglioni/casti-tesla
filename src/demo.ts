@@ -22,7 +22,7 @@ export function creaDatiDemo(): Dati {
       ricariche.push({ inizio: partenza.toISOString(), fine: fineRicarica.toISOString(), kwh, potenza_max_w: 7150 + caso() * 150 })
     }
     if (g.endsWith('-01') || g.endsWith('-15')) {
-      km.push({ id: crypto.randomUUID(), data: g, km: Math.round(contachilometri), created_by: 'demo' })
+      km.push({ id: crypto.randomUUID(), data: g, km: Math.round(contachilometri), created_by: 'demo', fonte: 'manuale' })
     }
   }
   ricariche.reverse()
@@ -35,6 +35,12 @@ export function creaDatiDemo(): Dati {
     km,
     giorni,
     ricariche,
+    esterne: [
+      { id: 'e1', data: aggiungiGiorni(fine, -9), tipo: 'supercharger', luogo: 'Supercharger Milano', kwh: 42.5, euro: 21.68, fonte: 'tesla', created_by: null },
+      { id: 'e2', data: aggiungiGiorni(fine, -40), tipo: 'altra', luogo: 'Enel X Bergamo', kwh: 18, euro: 13.5, fonte: 'manuale', created_by: 'demo' },
+      { id: 'e3', data: aggiungiGiorni(fine, -75), tipo: 'supercharger', luogo: 'Supercharger Verona', kwh: 51.2, euro: 26.11, fonte: 'tesla', created_by: null },
+    ],
+    tesla: null,
     ultima: { ts: new Date().toISOString(), totale_wh: 4_730_900, potenza_w: 7177, tensione: 218.6 },
   }
 }

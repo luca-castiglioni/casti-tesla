@@ -71,6 +71,36 @@ create table if not exists public.km (
   created_at timestamptz not null default now()
 );
 create index if not exists km_data on public.km (data);
+-- letture automatiche dalla Tesla (Edge Function "leggi_tesla"): senza autore, fonte = 'tesla'
+alter table public.km alter column created_by drop not null;
+alter table public.km add column if not exists fonte text not null default 'manuale'
+  check (fonte in ('manuale', 'tesla'));
+
+-- ---------- Ricariche fuori casa (Supercharger e altre colonnine) ----------
+-- A mano dall'app, oppure (Supercharger) in automatico dallo storico Tesla.
+create table if not exists public.ricariche_esterne (
+  id         uuid primary key default gen_random_uuid(),
+  data       date not null,
+  tipo       text not null default 'altra' check (tipo in ('supercharger', 'altra')),
+  luogo      text,
+  kwh        numeric check (kwh is null or (kwh >= 0 and kwh < 1000)),
+  euro       numeric not null check (euro >= 0 and euro < 10000),
+  fonte      text not null default 'manuale' check (fonte in ('manuale', 'tesla')),
+  id_tesla   text unique, -- id della sessione nello storico Tesla (evita doppioni)
+  created_by uuid default auth.uid() references public.profiles (id),
+  created_at timestamptz not null default now()
+);
+create index if not exists ricariche_esterne_data on public.ricariche_esterne (data);
+
+-- ---------- Stato del collegamento Tesla (una riga, la scrive la funzione) ----------
+create table if not exists public.tesla_stato (
+  id               int primary key default 1 check (id = 1),
+  ultimo_km        timestamptz, -- ultima lettura del contachilometri riuscita
+  ultimo_storico   timestamptz, -- ultimo controllo dello storico Supercharger
+  ultimo_errore    text,
+  ultimo_errore_ts timestamptz
+);
+insert into public.tesla_stato (id) values (1) on conflict (id) do nothing;
 
 -- ---------- Valori iniziali (una sola riga) ----------
 -- Quello che la Tesla aveva percorso e ricaricato PRIMA dello Shelly.
@@ -131,6 +161,8 @@ alter table public.letture      enable row level security;
 alter table public.prezzi       enable row level security;
 alter table public.km           enable row level security;
 alter table public.impostazioni enable row level security;
+alter table public.ricariche_esterne enable row level security;
+alter table public.tesla_stato  enable row level security;
 
 drop policy if exists "profili visibili" on public.profiles;
 create policy "profili visibili" on public.profiles
@@ -179,6 +211,25 @@ create policy "lettura" on public.impostazioni for select to authenticated using
 drop policy if exists "modifica admin" on public.impostazioni;
 create policy "modifica admin" on public.impostazioni
   for update to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- ricariche esterne: come i km (tutti vedono e aggiungono; modifica/elimina il proprio o l'admin)
+drop policy if exists "lettura" on public.ricariche_esterne;
+create policy "lettura" on public.ricariche_esterne for select to authenticated using (true);
+drop policy if exists "inserimento" on public.ricariche_esterne;
+create policy "inserimento" on public.ricariche_esterne
+  for insert to authenticated with check (created_by = auth.uid() and fonte = 'manuale');
+drop policy if exists "modifica" on public.ricariche_esterne;
+create policy "modifica" on public.ricariche_esterne
+  for update to authenticated
+  using (created_by = auth.uid() or public.is_admin())
+  with check (created_by = auth.uid() or public.is_admin());
+drop policy if exists "eliminazione" on public.ricariche_esterne;
+create policy "eliminazione" on public.ricariche_esterne
+  for delete to authenticated using (created_by = auth.uid() or public.is_admin());
+
+-- stato Tesla: tutti vedono, scrive solo la Edge Function
+drop policy if exists "lettura" on public.tesla_stato;
+create policy "lettura" on public.tesla_stato for select to authenticated using (true);
 
 -- Dopo aver creato il primo utente in Authentication → Users:
 --   update public.profiles set is_admin = true where email = 'tua@email.it';

@@ -116,6 +116,10 @@ code { font-size: 14px; }
   box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
 }
 .pulsante:disabled { opacity: 0.6; }
+.pulsante.largo { width: 100%; margin-bottom: 4px; }
+.riga-pulsanti { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+.riga-pulsanti .pulsante:not(.primario) { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--bordo); color: var(--testo); }
+.modulo .segmenti { margin: 0; }
 .pulsante.piccolo {
   padding: 8px 14px;
   font-size: 14px;
@@ -346,6 +350,17 @@ code { font-size: 14px; }
 .bollino.viola { background: rgba(167, 139, 250, 0.2); color: var(--viola); }
 .bollino.ciano { background: rgba(34, 211, 238, 0.18); color: var(--ciano); }
 .bollino.verde { background: rgba(52, 211, 153, 0.18); color: var(--verde); }
+.bollino.rosso { background: rgba(248, 113, 113, 0.18); color: var(--rosso); }
+.bollino.ambra { background: rgba(251, 191, 36, 0.16); color: var(--ambra); }
+.etichetta-fonte {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--verde);
+  background: rgba(52, 211, 153, 0.14);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 6px;
+}
 
 .menu-voci button {
   width: 100%;

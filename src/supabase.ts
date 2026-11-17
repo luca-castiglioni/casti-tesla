@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { creaDatiDemo } from './demo'
-import type { ConsumoGiorno, Dati, Impostazioni, LetturaKm, LetturaShelly, Prezzo, Profilo, Ricarica } from './types'
+import type { ConsumoGiorno, Dati, Impostazioni, LetturaKm, LetturaShelly, Prezzo, Profilo, Ricarica, RicaricaEsterna, StatoTesla } from './types'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -38,9 +38,9 @@ export async function caricaDati(): Promise<Dati> {
   const impostazioni = controlla<Impostazioni>(
     await supabase.from('impostazioni').select('km_iniziali, kwh_iniziali, data_inizio').eq('id', 1).single(),
   )
-  const [prezzi, km, giorni, ricariche, ultima] = await Promise.all([
+  const [prezzi, km, giorni, ricariche, ultima, esterne, tesla] = await Promise.all([
     supabase.from('prezzi').select('id, valido_dal, euro_kwh').order('valido_dal').then(controlla<Prezzo[]>),
-    supabase.from('km').select('id, data, km, created_by').order('data').then(controlla<LetturaKm[]>),
+    supabase.from('km').select('id, data, km, created_by, fonte').order('data').then(controlla<LetturaKm[]>),
     tutteLeRighe<ConsumoGiorno>((da, a) =>
       supabase.from('consumi_giornalieri').select('giorno, kwh').gte('giorno', impostazioni.data_inizio).order('giorno').range(da, a),
     ),
@@ -58,6 +58,18 @@ export async function caricaDati(): Promise<Dati> {
       .limit(1)
       .maybeSingle()
       .then(controlla<LetturaShelly | null>),
+    supabase
+      .from('ricariche_esterne')
+      .select('id, data, tipo, luogo, kwh, euro, fonte, created_by')
+      .order('data', { ascending: false })
+      .then(controlla<RicaricaEsterna[]>),
+    // stato del collegamento Tesla: se manca non blocco l'app
+    supabase
+      .from('tesla_stato')
+      .select('ultimo_km, ultimo_storico, ultimo_errore, ultimo_errore_ts')
+      .eq('id', 1)
+      .maybeSingle()
+      .then((r) => (r.error ? null : (r.data as StatoTesla | null))),
   ])
   // i numeri "numeric" di Postgres arrivano come testo o numero: li rendo sempre numeri
   return {
@@ -70,7 +82,9 @@ export async function caricaDati(): Promise<Dati> {
     km: km.map((k) => ({ ...k, km: Number(k.km) })),
     giorni: giorni.map((g) => ({ ...g, kwh: Number(g.kwh) })),
     ricariche: ricariche.map((r) => ({ ...r, kwh: Number(r.kwh), potenza_max_w: Number(r.potenza_max_w) })),
+    esterne: esterne.map((r) => ({ ...r, euro: Number(r.euro), kwh: r.kwh === null ? null : Number(r.kwh) })),
     ultima: ultima && { ...ultima, potenza_w: Number(ultima.potenza_w), totale_wh: Number(ultima.totale_wh) },
+    tesla,
   }
 }
 
@@ -115,7 +129,7 @@ export async function eliminaPrezzo(id: string) {
 }
 
 export async function aggiungiKm(data: string, km: number) {
-  if (demo) return void datiDemo!.km.push({ id: crypto.randomUUID(), data, km, created_by: 'demo' })
+  if (demo) return void datiDemo!.km.push({ id: crypto.randomUUID(), data, km, created_by: 'demo', fonte: 'manuale' })
   await esegui(supabase.from('km').insert({ data, km }))
 }
 
@@ -162,4 +176,37 @@ export async function cambiaPassword(email: string, attuale: string, nuova: stri
 export async function eliminaKm(id: string) {
   if (demo) return void (datiDemo!.km = datiDemo!.km.filter((k) => k.id !== id))
   await esegui(supabase.from('km').delete().eq('id', id).select('id'), true)
+}
+
+export interface EsitoProvaTesla {
+  stato_auto?: string
+  km?: number | null
+  sessioni_supercharger?: number
+  campi_sessione?: string[]
+  campi_costo?: string[]
+  esempio?: { kwh: number | null; euro: number; valuta?: string }
+  errori?: string[]
+  attivo?: boolean
+  motivo?: string
+}
+
+// Prova del collegamento Tesla (solo admin): legge subito km e storico Supercharger
+export async function provaTesla(): Promise<EsitoProvaTesla> {
+  if (demo) return { stato_auto: 'asleep', km: null, sessioni_supercharger: 2, errori: [] }
+  const { data, error } = await supabase.functions.invoke('leggi_tesla', { body: { azione: 'prova' } })
+  if (!error) return data as EsitoProvaTesla
+  const dettaglio = await (error as { context?: Response }).context?.json?.().catch(() => null)
+  throw new Error(dettaglio?.errore ?? 'Funzione leggi_tesla non raggiungibile: è stata pubblicata?')
+}
+
+export type NuovaEsterna = Pick<RicaricaEsterna, 'data' | 'tipo' | 'luogo' | 'kwh' | 'euro'>
+
+export async function aggiungiEsterna(r: NuovaEsterna) {
+  if (demo) return void datiDemo!.esterne.unshift({ ...r, id: crypto.randomUUID(), fonte: 'manuale', created_by: 'demo' })
+  await esegui(supabase.from('ricariche_esterne').insert(r))
+}
+
+export async function eliminaEsterna(id: string) {
+  if (demo) return void (datiDemo!.esterne = datiDemo!.esterne.filter((r) => r.id !== id))
+  await esegui(supabase.from('ricariche_esterne').delete().eq('id', id).select('id'), true)
 }

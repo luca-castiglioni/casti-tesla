@@ -41,9 +41,9 @@ export default {
     if (corpo.azione === 'elimina') {
       const id = String(corpo.id ?? '')
       if (id === io) return errore('Non puoi eliminare te stesso.')
-      for (const tabella of ['km', 'prezzi']) {
+      for (const tabella of ['km', 'prezzi', 'ricariche_esterne']) {
         const { count } = await admin.from(tabella).select('id', { count: 'exact', head: true }).eq('created_by', id)
-        if (count) return errore('Questo utente ha inserito dei dati (km o prezzi): eliminali prima, poi riprova.', 409)
+        if (count) return errore('Questo utente ha inserito dei dati (km, prezzi o ricariche): eliminali prima, poi riprova.', 409)
       }
       const { error } = await admin.auth.admin.deleteUser(id)
       if (error) return errore('Impossibile eliminare l\'utente: ' + error.message, 500)

@@ -21,7 +21,26 @@ export interface LetturaKm {
   id: string
   data: string
   km: number
-  created_by: string
+  created_by: string | null
+  fonte: 'manuale' | 'tesla'
+}
+
+export interface RicaricaEsterna {
+  id: string
+  data: string // AAAA-MM-GG
+  tipo: 'supercharger' | 'altra'
+  luogo: string | null
+  kwh: number | null // facoltativo: a volte si conosce solo l'importo
+  euro: number
+  fonte: 'manuale' | 'tesla'
+  created_by: string | null
+}
+
+export interface StatoTesla {
+  ultimo_km: string | null
+  ultimo_storico: string | null
+  ultimo_errore: string | null
+  ultimo_errore_ts: string | null
 }
 
 export interface ConsumoGiorno {
@@ -49,5 +68,7 @@ export interface Dati {
   km: LetturaKm[]
   giorni: ConsumoGiorno[]
   ricariche: Ricarica[]
+  esterne: RicaricaEsterna[]
   ultima: LetturaShelly | null
+  tesla: StatoTesla | null
 }

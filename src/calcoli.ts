@@ -5,9 +5,11 @@ import type { Dati, Prezzo, Ricarica } from './types'
 
 export interface Giorno {
   giorno: string
-  kwh: number
-  euro_kwh: number
-  costo: number
+  kwh: number // tutti i kWh del giorno: casa + fuori casa
+  euro_kwh: number // prezzo di casa
+  costo: number // casa + fuori casa
+  kwhEsterni: number // di cui fuori casa (Supercharger e altre colonnine)
+  costoEsterni: number
   km: number
   kmStimati: boolean // true = km ricavati dal consumo medio (dopo l'ultima lettura del contachilometri)
 }
@@ -16,6 +18,8 @@ export interface Periodo {
   chiave: string // lunedì della settimana (AAAA-MM-GG) oppure mese (AAAA-MM)
   kwh: number
   costo: number
+  kwhEsterni: number
+  costoEsterni: number
   km: number
   kmStimati: boolean
 }
@@ -23,6 +27,8 @@ export interface Periodo {
 export interface Totali {
   kwh: number
   costo: number
+  kwhEsterni: number
+  costoEsterni: number
   km: number
   kmStimati: number // quanti dei km sono stimati
   costoKm: number | null
@@ -44,6 +50,7 @@ export function prezzoDel(giorno: string, prezzi: Prezzo[]): number {
 }
 
 // Elenco dei giorni dalla data di inizio a oggi, con kWh, costo e km attribuiti.
+// Contano sia le ricariche di casa (Shelly) sia quelle fuori casa (con il loro importo pagato).
 // I km tra due letture del contachilometri vengono divisi tra i giorni
 // in proporzione ai kWh ricaricati (se non c'è stata nessuna ricarica, in parti uguali).
 // Dopo l'ultima lettura i km sono stimati con il consumo medio (km per kWh).
@@ -54,14 +61,32 @@ export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
   for (const g of dati.giorni) {
     if (g.giorno >= inizio) kwhDel.set(g.giorno, (kwhDel.get(g.giorno) ?? 0) + Number(g.kwh))
   }
-  const ultimoConDati = [...kwhDel.keys()].sort().at(-1)
+  const esterneDel = new Map<string, { kwh: number; euro: number }>()
+  for (const r of dati.esterne) {
+    if (r.data < inizio) continue
+    const e = esterneDel.get(r.data) ?? { kwh: 0, euro: 0 }
+    e.kwh += Number(r.kwh ?? 0)
+    e.euro += Number(r.euro)
+    esterneDel.set(r.data, e)
+  }
+  const ultimoConDati = [...kwhDel.keys(), ...esterneDel.keys()].sort().at(-1)
   if (ultimoConDati && ultimoConDati > fino) fino = ultimoConDati
 
   const giorni: Giorno[] = []
   for (let g = inizio; g <= fino; g = aggiungiGiorni(g, 1)) {
-    const kwh = kwhDel.get(g) ?? 0
+    const kwhCasa = kwhDel.get(g) ?? 0
+    const est = esterneDel.get(g) ?? { kwh: 0, euro: 0 }
     const euro_kwh = prezzoDel(g, prezzi)
-    giorni.push({ giorno: g, kwh, euro_kwh, costo: kwh * euro_kwh, km: 0, kmStimati: false })
+    giorni.push({
+      giorno: g,
+      kwh: kwhCasa + est.kwh,
+      euro_kwh,
+      costo: kwhCasa * euro_kwh + est.euro,
+      kwhEsterni: est.kwh,
+      costoEsterni: est.euro,
+      km: 0,
+      kmStimati: false,
+    })
   }
   if (!giorni.length) return giorni
 
@@ -108,9 +133,11 @@ export function raggruppa(giorni: Giorno[], per: 'settimana' | 'mese'): Periodo[
   const mappa = new Map<string, Periodo>()
   for (const g of giorni) {
     const chiave = per === 'mese' ? g.giorno.slice(0, 7) : lunedi(g.giorno)
-    const p = mappa.get(chiave) ?? { chiave, kwh: 0, costo: 0, km: 0, kmStimati: false }
+    const p = mappa.get(chiave) ?? { chiave, kwh: 0, costo: 0, kwhEsterni: 0, costoEsterni: 0, km: 0, kmStimati: false }
     p.kwh += g.kwh
     p.costo += g.costo
+    p.kwhEsterni += g.kwhEsterni
+    p.costoEsterni += g.costoEsterni
     p.km += g.km
     p.kmStimati ||= g.kmStimati
     mappa.set(chiave, p)
@@ -125,7 +152,9 @@ export function calcolaTotali(dati: Dati, giorni: Giorno[]): Totali {
   const costo = Number(imp.kwh_iniziali) * prezzoIniziale + giorni.reduce((s, g) => s + g.costo, 0)
   const kmStimati = giorni.filter((g) => g.kmStimati).reduce((s, g) => s + g.km, 0)
   const km = Number(imp.km_iniziali) + giorni.reduce((s, g) => s + g.km, 0)
-  return { kwh, costo, km, kmStimati, ...indici(costo, kwh, km) }
+  const kwhEsterni = giorni.reduce((s, g) => s + g.kwhEsterni, 0)
+  const costoEsterni = giorni.reduce((s, g) => s + g.costoEsterni, 0)
+  return { kwh, costo, kwhEsterni, costoEsterni, km, kmStimati, ...indici(costo, kwh, km) }
 }
 
 export function indici(costo: number, kwh: number, km: number) {

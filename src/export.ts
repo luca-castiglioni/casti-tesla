@@ -35,6 +35,7 @@ export async function scaricaExcel(dati: Dati, giorni: Giorno[]) {
     { name: prima, larghezza: 14, formato: 'dd/mm/yyyy' },
     { name: 'kWh', larghezza: 10, formato: '0.0' },
     { name: 'Costo €', larghezza: 12, formato: '#,##0.00' },
+    { name: 'Di cui fuori casa €', larghezza: 18, formato: '#,##0.00' },
     { name: 'Km', larghezza: 10, formato: '0' },
     { name: '€/km', larghezza: 10, formato: '0.000' },
     { name: '€/100 km', larghezza: 12, formato: '#,##0.00' },
@@ -43,7 +44,7 @@ export async function scaricaExcel(dati: Dati, giorni: Giorno[]) {
   ]
   const rigaPeriodo = (p: Periodo, inizio: string) => {
     const i = indici(p.costo, p.kwh, p.km)
-    return [data(inizio), p.kwh, p.costo, p.km, i.costoKm ?? '', i.costo100km ?? '', i.kwh100km ?? '', p.kmStimati ? 'sì' : '']
+    return [data(inizio), p.kwh, p.costo, p.costoEsterni, p.km, i.costoKm ?? '', i.costo100km ?? '', i.kwh100km ?? '', p.kmStimati ? 'sì' : '']
   }
 
   foglio('Mesi', colonnePeriodo('Mese'), raggruppa(giorni, 'mese').map((p) => rigaPeriodo(p, `${p.chiave}-01`)))
@@ -63,6 +64,25 @@ export async function scaricaExcel(dati: Dati, giorni: Giorno[]) {
       r.kwh,
       costoRicarica(r, dati.prezzi),
       r.potenza_max_w,
+    ]),
+  )
+  foglio(
+    'Fuori casa',
+    [
+      { name: 'Data', larghezza: 14, formato: 'dd/mm/yyyy' },
+      { name: 'Tipo', larghezza: 14 },
+      { name: 'Luogo', larghezza: 26 },
+      { name: 'kWh', larghezza: 10, formato: '0.00' },
+      { name: 'Costo €', larghezza: 12, formato: '#,##0.00' },
+      { name: 'Fonte', larghezza: 10 },
+    ],
+    [...dati.esterne].reverse().map((r) => [
+      data(r.data),
+      r.tipo === 'supercharger' ? 'Supercharger' : 'Altra',
+      r.luogo ?? '',
+      r.kwh ?? '',
+      r.euro,
+      r.fonte === 'tesla' ? 'Tesla' : 'A mano',
     ]),
   )
   foglio(

@@ -13,7 +13,7 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - `npm run dev` — locale (porta 5174 con `.claude/launch.json`); `?demo` = dati inventati senza database
 - `npm run build` — controllo tipi + build
 - `npm test` — test dei calcoli (`src/calcoli.test.ts`)
-- `supabase functions deploy <nome> --remote=oqedsmomrbmdbbzooafd --use-api --yes` — pubblica una Edge Function (`leggi_shelly`, `gestisci_utenti`)
+- `supabase functions deploy <nome> --remote=oqedsmomrbmdbbzooafd --use-api --yes` — pubblica una Edge Function (`leggi_shelly`, `gestisci_utenti`, `leggi_tesla`)
 
 ## Come arrivano i dati
 - Shelly EM Gen1 `192.168.1.68`, nome "Energia wallbox", id cloud `c4d8d5001868`, canale 1 (indice 0) = wallbox.
@@ -21,6 +21,11 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - `leggi_shelly` chiama `POST {SHELLY_SERVER}/device/status` (API cloud v1) e salva `emeters[0].total` (Wh, contatore) in `letture`.
   La chiama pg_cron ogni 5 min (`supabase/cron.sql`) e l'app all'apertura/ogni minuto sulla Home (rate limit 30 s nella funzione).
 - Segreti della funzione: `SHELLY_SERVER`, `SHELLY_AUTH_KEY`, facoltativo `SHELLY_DEVICE_ID`.
+- `leggi_tesla` (pg_cron ogni 10 min) usa il ponte API di MyTeslaMate (API Plan a crediti, `https://api.myteslamate.com`):
+  legge il contachilometri (miglia → km) SOLO mentre lo Shelly vede la ricarica, max ogni 6 h, senza mai svegliare l'auto;
+  una volta al giorno importa lo storico Supercharger (`/api/1/dx/charging/history`, deduplica su `id_tesla`).
+  Stato ed errori in `tesla_stato` (Impostazioni → Collegamento Tesla, con "Prova adesso" per l'admin).
+  Segreti: `TESLA_TOKEN`, facoltativi `TESLA_VIN`, `TESLA_API`.
 
 ## Regole di calcolo (`src/calcoli.ts`)
 - Energia = differenze del contatore (`letture_delta`); se il contatore cala si considera ripartito da zero.
@@ -29,12 +34,14 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - Valori iniziali (`impostazioni`, una riga): `km_iniziali` = contachilometri all'installazione, `kwh_iniziali`, `data_inizio`
   (i consumi prima di questa data sono ignorati).
 - Km per giorno: tra due letture del contachilometri divisi in proporzione ai kWh; dopo l'ultima stimati con km/kWh medio (`kmStimati`).
-- Si contano solo le ricariche di casa (niente Supercharger).
+- Ricariche fuori casa (`ricariche_esterne`): Supercharger o altre colonnine, con importo pagato (kWh facoltativi).
+  Entrano in costi, kWh e divisione dei km per giorno; prima di `data_inizio` sono ignorate.
+  Le inserisce l'utente dall'app (Ricariche → "+ Ricarica fuori casa") oppure `leggi_tesla` (fonte 'tesla').
 
 ## Permessi (RLS)
 - Tutti gli utenti collegati vedono tutto. `letture` le scrive solo la Edge Function (service key).
 - Utenti: li gestisce l'admin dall'app (Impostazioni → Utenti) tramite la Edge Function `gestisci_utenti` (crea, elimina, ruolo admin). Ognuno cambia la propria password in Impostazioni.
-- `km`: tutti inseriscono; modifica/elimina chi l'ha inserito o l'admin. `prezzi` e `impostazioni`: solo admin.
+- `km` e `ricariche_esterne`: tutti inseriscono; modifica/elimina chi l'ha inserito o l'admin (righe da Tesla: solo admin). `prezzi` e `impostazioni`: solo admin.
 
 ## Sicurezza
 - Mai committare `.env.local`. Nell'app solo la chiave anon/publishable; la chiave Shelly solo nei segreti della funzione.

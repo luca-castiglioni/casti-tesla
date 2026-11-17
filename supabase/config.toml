@@ -12,3 +12,9 @@ enabled = true
 # l'accesso lo controlla la funzione (utente collegato + amministratore)
 verify_jwt = false
 import_map = "./functions/gestisci_utenti/deno.json"
+
+[functions.leggi_tesla]
+enabled = true
+# l'accesso lo controlla la funzione (chiave publishable; la "prova" solo per l'amministratore)
+verify_jwt = false
+import_map = "./functions/leggi_tesla/deno.json"

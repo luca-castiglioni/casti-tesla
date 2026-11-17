@@ -115,6 +115,7 @@ function Dettaglio({ p, titolo }: { p: Periodo; titolo: string }) {
       <h3>{titolo}</h3>
       <div className="dettaglio-griglia">
         <div><small>Costo ricariche</small><strong className="testo-viola">{formatEuro(p.costo)}</strong></div>
+        <div><small>Di cui fuori casa</small><strong>{formatEuro(p.costoEsterni)}</strong></div>
         <div><small>kWh ricaricati</small><strong className="testo-ambra">{formatNumero(p.kwh, 1)}</strong></div>
         <div><small>Km percorsi{p.kmStimati ? ' *' : ''}</small><strong className="testo-rosa">{formatNumero(p.km)}</strong></div>
         <div><small>Costo per 100 km</small><strong className="testo-ciano">{i.costo100km !== null ? formatEuro(i.costo100km) : '—'}</strong></div>

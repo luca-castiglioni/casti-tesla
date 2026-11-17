@@ -41,7 +41,7 @@ export default function Cruscotto({ dati, giorni, totali, avviso, aggiornamento,
       <header className="testata">
         <div>
           <h1>Casti Tesla</h1>
-          <small>Energia wallbox</small>
+          <small>Ricariche a casa e fuori</small>
         </div>
         <button className={`pulsante-tondo ${aggiornamento ? 'gira' : ''}`} onClick={onAggiorna} aria-label="Aggiorna">
           <IconaAggiorna />
@@ -85,7 +85,13 @@ export default function Cruscotto({ dati, giorni, totali, avviso, aggiornamento,
 
       <h2 className="titolo-sezione">Dall'inizio</h2>
       <section className="griglia-tessere">
-        <Tessera colore="viola" etichetta="Costo totale ricariche" valore={formatEuro(totali.costo)} grande />
+        <Tessera
+          colore="viola"
+          etichetta="Costo totale ricariche"
+          valore={formatEuro(totali.costo)}
+          grande
+          nota={totali.costoEsterni > 0 ? `di cui ${formatEuro(totali.costoEsterni)} fuori casa` : undefined}
+        />
         <Tessera
           colore="ciano"
           etichetta="Costo per 100 km"

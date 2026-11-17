@@ -54,7 +54,11 @@ export default function PaginaKm({ dati, userId, admin, onCambiato }: Props) {
       <header className="testata">
         <div>
           <h1>Km percorsi</h1>
-          <small>Leggi il contachilometri della Tesla</small>
+          <small>
+            {dati.km.some((k) => k.fonte === 'tesla')
+              ? 'Letti in automatico durante le ricariche di casa'
+              : 'Leggi il contachilometri della Tesla'}
+          </small>
         </div>
       </header>
 
@@ -86,7 +90,9 @@ export default function PaginaKm({ dati, userId, admin, onCambiato }: Props) {
         {letture.map((k) => (
           <li key={k.id}>
             <div className="voce-testo">
-              <strong>{formatNumero(k.km)} km</strong>
+              <strong>
+                {formatNumero(k.km)} km{k.fonte === 'tesla' && <span className="etichetta-fonte">Tesla</span>}
+              </strong>
               <small>{formatData(k.data, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</small>
             </div>
             {(k.created_by === userId || admin) && (

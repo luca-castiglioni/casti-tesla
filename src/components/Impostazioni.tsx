@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { prezzoDel, type Giorno } from '../calcoli'
 import { scaricaExcel } from '../export'
-import { formatData, formatEuroFine, formatNumero, oggi, parseNumero } from '../format'
-import { aggiungiPrezzo, cambiaPassword, demo, eliminaPrezzo, salvaImpostazioni, supabase } from '../supabase'
+import { formatData, formatEuroFine, formatNumero, oggi, parseNumero, quantoTempoFa } from '../format'
+import { aggiungiPrezzo, cambiaPassword, demo, eliminaPrezzo, provaTesla, salvaImpostazioni, supabase, type EsitoProvaTesla } from '../supabase'
 import type { Dati, Profilo } from '../types'
 import { IconaCestino, IconaFreccia } from './Icone'
 import Utenti from './Utenti'
@@ -55,7 +55,7 @@ function CambiaPassword({ email, onIndietro }: { email: string; onIndietro: () =
   )
 }
 
-type Sottomenu = null | 'iniziali' | 'prezzi' | 'utenti' | 'password'
+type Sottomenu = null | 'iniziali' | 'prezzi' | 'utenti' | 'password' | 'tesla'
 
 interface Props {
   dati: Dati
@@ -73,6 +73,8 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
   if (menu === 'prezzi') return <Prezzi dati={dati} admin={admin} onIndietro={() => setMenu(null)} onCambiato={onCambiato} />
   if (menu === 'utenti' && profilo)
     return <Utenti io={profilo} testata={<TestataSottomenu titolo="Utenti" onIndietro={() => setMenu(null)} />} />
+  if (menu === 'tesla')
+    return <CollegamentoTesla dati={dati} admin={admin} onIndietro={() => setMenu(null)} onCambiato={onCambiato} />
   if (menu === 'password' && profilo)
     return <CambiaPassword email={profilo.email} onIndietro={() => setMenu(null)} />
 
@@ -116,6 +118,16 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
             <IconaFreccia />
           </button>
         </li>
+        <li>
+          <button onClick={() => setMenu('tesla')}>
+            <span className="bollino rosso">T</span>
+            <div className="voce-testo">
+              <strong>Collegamento Tesla</strong>
+              <small>{testoStatoTesla(dati)}</small>
+            </div>
+            <IconaFreccia />
+          </button>
+        </li>
         {admin && (
           <li>
             <button onClick={() => setMenu('utenti')}>
@@ -133,7 +145,7 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
             <span className="bollino verde">⇩</span>
             <div className="voce-testo">
               <strong>Esporta in Excel</strong>
-              <small>Mesi, settimane, ricariche e km</small>
+              <small>Mesi, settimane, ricariche (anche fuori casa) e km</small>
             </div>
             <IconaFreccia />
           </button>
@@ -160,6 +172,96 @@ export default function Impostazioni({ dati, giorni, profilo, onCambiato }: Prop
         )}
       </section>
     </>
+  )
+}
+
+function testoStatoTesla(dati: Dati): string {
+  const t = dati.tesla
+  if (!t || (!t.ultimo_km && !t.ultimo_storico && !t.ultimo_errore)) return 'Non ancora attivo (MyTeslaMate)'
+  if (t.ultimo_errore) return '⚠ ' + t.ultimo_errore
+  return t.ultimo_km ? `Km letti ${quantoTempoFa(t.ultimo_km)}` : 'Attivo, in attesa di una ricarica'
+}
+
+function CollegamentoTesla({ dati, admin, onIndietro, onCambiato }: { dati: Dati; admin: boolean; onIndietro: () => void; onCambiato: () => Promise<void> }) {
+  const [esito, setEsito] = useState<EsitoProvaTesla | null>(null)
+  const [errore, setErrore] = useState<string | null>(null)
+  const [attesa, setAttesa] = useState(false)
+  const t = dati.tesla
+
+  async function prova() {
+    setAttesa(true)
+    setErrore(null)
+    setEsito(null)
+    try {
+      setEsito(await provaTesla())
+      await onCambiato()
+    } catch (err) {
+      setErrore((err as Error).message)
+    } finally {
+      setAttesa(false)
+    }
+  }
+
+  return (
+    <>
+      <TestataSottomenu titolo="Collegamento Tesla" onIndietro={onIndietro} />
+      <p className="spiegazione">
+        Tramite MyTeslaMate l'app legge da sola il contachilometri mentre l'auto carica a casa (senza mai svegliarla)
+        e, una volta al giorno, le ricariche fatte ai Supercharger con il loro costo.
+      </p>
+      <ul className="scheda elenco-semplice">
+        <li>
+          <div className="voce-testo">
+            <strong>Ultima lettura km</strong>
+            <small>{t?.ultimo_km ? quantoTempoFa(t.ultimo_km) : 'mai'}</small>
+          </div>
+        </li>
+        <li>
+          <div className="voce-testo">
+            <strong>Ultimo controllo Supercharger</strong>
+            <small>{t?.ultimo_storico ? quantoTempoFa(t.ultimo_storico) : 'mai'}</small>
+          </div>
+        </li>
+        {t?.ultimo_errore && (
+          <li>
+            <div className="voce-testo">
+              <strong className="errore">Ultimo problema</strong>
+              <small>
+                {t.ultimo_errore}
+                {t.ultimo_errore_ts ? ` · ${quantoTempoFa(t.ultimo_errore_ts)}` : ''}
+              </small>
+            </div>
+          </li>
+        )}
+      </ul>
+
+      {admin && (
+        <section className="scheda modulo">
+          <button className="pulsante primario" onClick={prova} disabled={attesa}>
+            {attesa ? 'Prova in corso…' : 'Prova adesso'}
+          </button>
+          {errore && <p className="errore">{errore}</p>}
+          {esito && <EsitoProva e={esito} />}
+        </section>
+      )}
+    </>
+  )
+}
+
+function EsitoProva({ e }: { e: EsitoProvaTesla }) {
+  if (e.attivo === false) return <p className="errore">{e.motivo}</p>
+  const righe = [
+    `Auto: ${e.stato_auto === 'online' ? 'sveglia' : e.stato_auto === 'asleep' ? 'addormentata' : (e.stato_auto ?? '?')}`,
+    e.km != null ? `Contachilometri: ${formatNumero(e.km)} km` : 'Contachilometri: non letto (l\'auto dorme: lo leggerò alla prossima ricarica)',
+    e.sessioni_supercharger !== undefined ? `Ricariche Supercharger trovate: ${e.sessioni_supercharger}` : null,
+    e.esempio ? `Esempio: ${e.esempio.kwh ?? '?'} kWh, ${e.esempio.euro} ${e.esempio.valuta ?? ''}` : null,
+    e.campi_costo?.length ? `Campi costo: ${e.campi_costo.join(', ')}` : null,
+  ].filter(Boolean)
+  return (
+    <div>
+      {righe.map((r) => <p key={r} className="successo">{r}</p>)}
+      {e.errori?.map((r) => <p key={r} className="errore">{r}</p>)}
+    </div>
   )
 }
 

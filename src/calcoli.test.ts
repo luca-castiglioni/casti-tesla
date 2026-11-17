@@ -12,7 +12,9 @@ function dati(parziali: Partial<Dati> = {}): Dati {
     km: [],
     giorni: [],
     ricariche: [],
+    esterne: [],
     ultima: null,
+    tesla: null,
     ...parziali,
   }
 }
@@ -34,7 +36,7 @@ describe('calcolaGiorni', () => {
         { giorno: '2026-11-02', kwh: 10 },
         { giorno: '2026-11-04', kwh: 30 },
       ],
-      km: [{ id: '1', data: '2026-11-05', km: 10200, created_by: 'x' }],
+      km: [{ id: '1', data: '2026-11-05', km: 10200, created_by: 'x', fonte: 'manuale' }],
     })
     const g = calcolaGiorni(d, '2026-11-05')
     expect(g).toHaveLength(5)
@@ -49,7 +51,7 @@ describe('calcolaGiorni', () => {
         { giorno: '2026-11-02', kwh: 20 },
         { giorno: '2026-11-07', kwh: 10 },
       ],
-      km: [{ id: '1', data: '2026-11-03', km: 10100, created_by: 'x' }],
+      km: [{ id: '1', data: '2026-11-03', km: 10100, created_by: 'x', fonte: 'manuale' }],
     })
     const g = calcolaGiorni(d, '2026-11-08')
     const dopo = g.find((x) => x.giorno === '2026-11-07')!
@@ -75,7 +77,7 @@ describe('totali e periodi', () => {
   it('somma i valori iniziali al primo prezzo', () => {
     const d = dati({
       giorni: [{ giorno: '2026-11-02', kwh: 20 }],
-      km: [{ id: '1', data: '2026-11-03', km: 10100, created_by: 'x' }],
+      km: [{ id: '1', data: '2026-11-03', km: 10100, created_by: 'x', fonte: 'manuale' }],
     })
     const g = calcolaGiorni(d, '2026-11-03')
     const t = calcolaTotali(d, g)
@@ -91,5 +93,38 @@ describe('totali e periodi', () => {
     const sett = raggruppa(g, 'settimana')
     expect(sett.map((s) => s.chiave)).toEqual(['2026-10-26', '2026-11-02'])
     expect(raggruppa(g, 'mese')[0].kwh).toBe(12)
+  })
+})
+
+describe('ricariche esterne', () => {
+  const esterna = (data: string, kwh: number | null, euro: number) => ({
+    id: data, data, tipo: 'supercharger' as const, luogo: null, kwh, euro, fonte: 'manuale' as const, created_by: 'x',
+  })
+
+  it('somma importo e kWh fuori casa a quelli di casa', () => {
+    const d = dati({
+      giorni: [{ giorno: '2026-11-02', kwh: 10 }],
+      esterne: [esterna('2026-11-02', 40, 22), esterna('2026-11-03', null, 5), esterna('2026-10-20', 50, 30)],
+    })
+    const g = calcolaGiorni(d, '2026-11-03')
+    const g2 = g.find((x) => x.giorno === '2026-11-02')!
+    expect(g2.kwh).toBe(50)
+    expect(g2.costo).toBeCloseTo(10 * 0.3 + 22)
+    expect(g2.costoEsterni).toBe(22)
+    const t = calcolaTotali(d, g)
+    expect(t.costoEsterni).toBe(27) // quella prima della data di inizio è ignorata
+    expect(t.kwhEsterni).toBe(40)
+    expect(raggruppa(g, 'mese')[0].costoEsterni).toBe(27)
+  })
+
+  it('divide i km anche sui kWh caricati fuori casa', () => {
+    const d = dati({
+      giorni: [{ giorno: '2026-11-02', kwh: 10 }],
+      esterne: [esterna('2026-11-04', 30, 15)],
+      km: [{ id: '1', data: '2026-11-05', km: 10200, created_by: 'x', fonte: 'manuale' }],
+    })
+    const g = calcolaGiorni(d, '2026-11-05')
+    expect(g.find((x) => x.giorno === '2026-11-02')!.km).toBeCloseTo(50)
+    expect(g.find((x) => x.giorno === '2026-11-04')!.km).toBeCloseTo(150)
   })
 })
