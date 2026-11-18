@@ -110,12 +110,6 @@ export default function Cruscotto({ dati, giorni, totali, avviso, aggiornamento,
         />
         <Tessera colore="rosa" etichetta="Km percorsi" valore={formatNumero(totali.km, 0)} />
       </section>
-      {totali.kmStimati > 1 && (
-        <p className="nota-piccola">
-          Di cui {formatNumero(totali.kmStimati)} km stimati dai consumi:{' '}
-          <button className="link" onClick={() => onVai('km')}>aggiorna il contachilometri</button>
-        </p>
-      )}
 
       <section className="riga-periodi">
         <MiniPeriodo titolo="Questa settimana" p={settimanaCorrente} onClick={() => onVai('grafici')} />

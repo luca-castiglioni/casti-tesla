@@ -45,7 +45,7 @@ describe('calcolaGiorni', () => {
     expect(g.find((x) => x.giorno === '2026-11-03')!.km).toBe(0)
   })
 
-  it('stima i km dopo l\'ultima lettura con il consumo medio', () => {
+  it('non stima i km dopo l\'ultima lettura: contano solo i km reali', () => {
     const d = dati({
       giorni: [
         { giorno: '2026-11-02', kwh: 20 },
@@ -55,8 +55,8 @@ describe('calcolaGiorni', () => {
     })
     const g = calcolaGiorni(d, '2026-11-08')
     const dopo = g.find((x) => x.giorno === '2026-11-07')!
-    expect(dopo.km).toBeCloseTo(50) // 100 km / 20 kWh × 10 kWh
-    expect(dopo.kmStimati).toBe(true)
+    expect(dopo.km).toBe(0)
+    expect(calcolaTotali(d, g).km).toBe(10100)
   })
 
   it('applica il prezzo del giorno e ignora i consumi prima dell\'inizio', () => {

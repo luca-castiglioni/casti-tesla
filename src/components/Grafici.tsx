@@ -117,12 +117,11 @@ function Dettaglio({ p, titolo }: { p: Periodo; titolo: string }) {
         <div><small>Costo ricariche</small><strong className="testo-viola">{formatEuro(p.costo)}</strong></div>
         <div><small>Di cui fuori casa</small><strong>{formatEuro(p.costoEsterni)}</strong></div>
         <div><small>kWh ricaricati</small><strong className="testo-ambra">{formatNumero(p.kwh, 1)}</strong></div>
-        <div><small>Km percorsi{p.kmStimati ? ' *' : ''}</small><strong className="testo-rosa">{formatNumero(p.km)}</strong></div>
+        <div><small>Km percorsi</small><strong className="testo-rosa">{formatNumero(p.km)}</strong></div>
         <div><small>Costo per 100 km</small><strong className="testo-ciano">{i.costo100km !== null ? formatEuro(i.costo100km) : '—'}</strong></div>
         <div><small>Costo al km</small><strong>{i.costoKm !== null ? formatEuroFine(i.costoKm) : '—'}</strong></div>
         <div><small>kWh / 100 km</small><strong>{i.kwh100km !== null ? formatNumero(i.kwh100km, 1) : '—'}</strong></div>
       </div>
-      {p.kmStimati && <p className="nota-piccola">* km in parte stimati dal consumo medio</p>}
     </section>
   )
 }

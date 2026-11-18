@@ -33,7 +33,8 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - Prezzo: storico `prezzi.valido_dal`; vale l'ultimo non successivo; prima del primo vale il primo (anche per i kWh iniziali).
 - Valori iniziali (`impostazioni`, una riga): `km_iniziali` = contachilometri all'installazione, `kwh_iniziali`, `data_inizio`
   (i consumi prima di questa data sono ignorati).
-- Km per giorno: tra due letture del contachilometri divisi in proporzione ai kWh; dopo l'ultima stimati con km/kWh medio (`kmStimati`).
+- Km per giorno: tra due letture del contachilometri divisi in proporzione ai kWh; dopo l'ultima lettura nessuna stima
+  (solo km reali: all'installazione la batteria era piena, quindi tutti i kWh = energia per i km percorsi).
 - Ricariche fuori casa (`ricariche_esterne`): Supercharger o altre colonnine, con importo pagato (kWh facoltativi).
   Entrano in costi, kWh e divisione dei km per giorno; prima di `data_inizio` sono ignorate.
   Le inserisce l'utente dall'app (Ricariche → "+ Ricarica fuori casa") oppure `leggi_tesla` (fonte 'tesla').

@@ -40,11 +40,10 @@ export async function scaricaExcel(dati: Dati, giorni: Giorno[]) {
     { name: '€/km', larghezza: 10, formato: '0.000' },
     { name: '€/100 km', larghezza: 12, formato: '#,##0.00' },
     { name: 'kWh/100 km', larghezza: 12, formato: '0.0' },
-    { name: 'Km stimati', larghezza: 11 },
   ]
   const rigaPeriodo = (p: Periodo, inizio: string) => {
     const i = indici(p.costo, p.kwh, p.km)
-    return [data(inizio), p.kwh, p.costo, p.costoEsterni, p.km, i.costoKm ?? '', i.costo100km ?? '', i.kwh100km ?? '', p.kmStimati ? 'sì' : '']
+    return [data(inizio), p.kwh, p.costo, p.costoEsterni, p.km, i.costoKm ?? '', i.costo100km ?? '', i.kwh100km ?? '']
   }
 
   foglio('Mesi', colonnePeriodo('Mese'), raggruppa(giorni, 'mese').map((p) => rigaPeriodo(p, `${p.chiave}-01`)))

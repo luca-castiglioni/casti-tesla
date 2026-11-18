@@ -11,7 +11,6 @@ export interface Giorno {
   kwhEsterni: number // di cui fuori casa (Supercharger e altre colonnine)
   costoEsterni: number
   km: number
-  kmStimati: boolean // true = km ricavati dal consumo medio (dopo l'ultima lettura del contachilometri)
 }
 
 export interface Periodo {
@@ -21,7 +20,6 @@ export interface Periodo {
   kwhEsterni: number
   costoEsterni: number
   km: number
-  kmStimati: boolean
 }
 
 export interface Totali {
@@ -29,8 +27,7 @@ export interface Totali {
   costo: number
   kwhEsterni: number
   costoEsterni: number
-  km: number
-  kmStimati: number // quanti dei km sono stimati
+  km: number // solo km reali: fino all'ultima lettura del contachilometri
   costoKm: number | null
   costo100km: number | null
   kwh100km: number | null
@@ -53,7 +50,7 @@ export function prezzoDel(giorno: string, prezzi: Prezzo[]): number {
 // Contano sia le ricariche di casa (Shelly) sia quelle fuori casa (con il loro importo pagato).
 // I km tra due letture del contachilometri vengono divisi tra i giorni
 // in proporzione ai kWh ricaricati (se non c'è stata nessuna ricarica, in parti uguali).
-// Dopo l'ultima lettura i km sono stimati con il consumo medio (km per kWh).
+// Dopo l'ultima lettura i km restano 0 (niente stime: si usano solo km reali).
 export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
   const { impostazioni: imp, prezzi } = dati
   const inizio = imp.data_inizio
@@ -85,7 +82,6 @@ export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
       kwhEsterni: est.kwh,
       costoEsterni: est.euro,
       km: 0,
-      kmStimati: false,
     })
   }
   if (!giorni.length) return giorni
@@ -102,30 +98,16 @@ export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
     else punti.push({ data: k.data, km: Number(k.km) })
   }
 
-  const indice = new Map(giorni.map((g, i) => [g.giorno, i]))
-  let kwhMisurati = 0
   for (let p = 1; p < punti.length; p++) {
     const a = punti[p - 1]
     const b = punti[p]
     const tratto = giorni.filter((g) => g.giorno > a.data && g.giorno <= b.data)
     const kwhTratto = tratto.reduce((s, g) => s + g.kwh, 0)
-    kwhMisurati += kwhTratto
     for (const g of tratto) {
       g.km = kwhTratto > 0 ? ((b.km - a.km) * g.kwh) / kwhTratto : (b.km - a.km) / tratto.length
     }
   }
 
-  // Consumo medio per stimare i km dopo l'ultima lettura
-  const ultimo = punti[punti.length - 1]
-  const kmMisurati = ultimo.km - punti[0].km
-  let kmPerKwh = 0
-  if (kmMisurati > 0 && kwhMisurati > 0) kmPerKwh = kmMisurati / kwhMisurati
-  else if (imp.km_iniziali > 0 && imp.kwh_iniziali > 0) kmPerKwh = imp.km_iniziali / imp.kwh_iniziali
-  const da = indice.get(ultimo.data) ?? 0
-  for (let i = da + 1; i < giorni.length; i++) {
-    giorni[i].km = giorni[i].kwh * kmPerKwh
-    giorni[i].kmStimati = giorni[i].kwh > 0
-  }
   return giorni
 }
 
@@ -133,13 +115,12 @@ export function raggruppa(giorni: Giorno[], per: 'settimana' | 'mese'): Periodo[
   const mappa = new Map<string, Periodo>()
   for (const g of giorni) {
     const chiave = per === 'mese' ? g.giorno.slice(0, 7) : lunedi(g.giorno)
-    const p = mappa.get(chiave) ?? { chiave, kwh: 0, costo: 0, kwhEsterni: 0, costoEsterni: 0, km: 0, kmStimati: false }
+    const p = mappa.get(chiave) ?? { chiave, kwh: 0, costo: 0, kwhEsterni: 0, costoEsterni: 0, km: 0 }
     p.kwh += g.kwh
     p.costo += g.costo
     p.kwhEsterni += g.kwhEsterni
     p.costoEsterni += g.costoEsterni
     p.km += g.km
-    p.kmStimati ||= g.kmStimati
     mappa.set(chiave, p)
   }
   return [...mappa.values()].sort((a, b) => a.chiave.localeCompare(b.chiave))
@@ -150,11 +131,10 @@ export function calcolaTotali(dati: Dati, giorni: Giorno[]): Totali {
   const prezzoIniziale = prezzoDel(imp.data_inizio, prezzi)
   const kwh = Number(imp.kwh_iniziali) + giorni.reduce((s, g) => s + g.kwh, 0)
   const costo = Number(imp.kwh_iniziali) * prezzoIniziale + giorni.reduce((s, g) => s + g.costo, 0)
-  const kmStimati = giorni.filter((g) => g.kmStimati).reduce((s, g) => s + g.km, 0)
   const km = Number(imp.km_iniziali) + giorni.reduce((s, g) => s + g.km, 0)
   const kwhEsterni = giorni.reduce((s, g) => s + g.kwhEsterni, 0)
   const costoEsterni = giorni.reduce((s, g) => s + g.costoEsterni, 0)
-  return { kwh, costo, kwhEsterni, costoEsterni, km, kmStimati, ...indici(costo, kwh, km) }
+  return { kwh, costo, kwhEsterni, costoEsterni, km, ...indici(costo, kwh, km) }
 }
 
 export function indici(costo: number, kwh: number, km: number) {
