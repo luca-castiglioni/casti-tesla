@@ -1,7 +1,7 @@
 // Tutti i conti dell'app: costi, km per giorno, settimane e mesi, totali.
 // Funzioni "pure" (nessun accesso al database): si provano in calcoli.test.ts.
 import { aggiungiGiorni, lunedi, oggi } from './format'
-import type { Dati, Prezzo, Ricarica } from './types'
+import type { Dati, Impostazioni, Prezzo, Ricarica } from './types'
 
 export interface Giorno {
   giorno: string
@@ -46,7 +46,13 @@ export function prezzoDel(giorno: string, prezzi: Prezzo[]): number {
   return Number(prezzo)
 }
 
-// Elenco dei giorni dalla data di inizio a oggi, con kWh, costo e km attribuiti.
+// Con la data di ritiro dell'auto (prima dello Shelly), kWh e km iniziali diventano un giorno
+// delle statistiche (auto nuova: contachilometri da zero); altrimenti si sommano solo nei totali.
+export function inizialiNeiGiorni(imp: Impostazioni): boolean {
+  return Boolean(imp.data_ritiro && imp.data_ritiro < imp.data_inizio)
+}
+
+// Elenco dei giorni dalla data di inizio (o di ritiro) a oggi, con kWh, costo e km attribuiti.
 // Contano sia le ricariche di casa (Shelly) sia quelle fuori casa (con il loro importo pagato).
 // I km tra due letture del contachilometri vengono divisi tra i giorni
 // in proporzione ai kWh ricaricati (se non c'è stata nessuna ricarica, in parti uguali).
@@ -69,8 +75,9 @@ export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
   const ultimoConDati = [...kwhDel.keys(), ...esterneDel.keys()].sort().at(-1)
   if (ultimoConDati && ultimoConDati > fino) fino = ultimoConDati
 
+  const ritiro = inizialiNeiGiorni(imp) ? imp.data_ritiro! : null
   const giorni: Giorno[] = []
-  for (let g = inizio; g <= fino; g = aggiungiGiorni(g, 1)) {
+  for (let g = ritiro ?? inizio; g <= fino; g = aggiungiGiorni(g, 1)) {
     const kwhCasa = kwhDel.get(g) ?? 0
     const est = esterneDel.get(g) ?? { kwh: 0, euro: 0 }
     const euro_kwh = prezzoDel(g, prezzi)
@@ -85,6 +92,15 @@ export function calcolaGiorni(dati: Dati, fino = oggi()): Giorno[] {
     })
   }
   if (!giorni.length) return giorni
+  if (ritiro) {
+    // kWh iniziali al prezzo del primo giorno dello Shelly (come nei totali), km dal contachilometri a zero
+    const g = giorni[0]
+    const prezzo = prezzoDel(inizio, prezzi)
+    g.kwh += Number(imp.kwh_iniziali)
+    g.costo += Number(imp.kwh_iniziali) * prezzo
+    g.euro_kwh = prezzo
+    g.km = Number(imp.km_iniziali)
+  }
 
   // Punti del contachilometri: quello iniziale + le letture successive, km crescenti
   const punti = [{ data: inizio, km: Number(imp.km_iniziali) }]
@@ -128,10 +144,13 @@ export function raggruppa(giorni: Giorno[], per: 'settimana' | 'mese'): Periodo[
 
 export function calcolaTotali(dati: Dati, giorni: Giorno[]): Totali {
   const { impostazioni: imp, prezzi } = dati
+  // se i valori iniziali sono già in un giorno (data di ritiro) non li sommo una seconda volta
+  const nei = inizialiNeiGiorni(imp)
+  const kwhIniziali = nei ? 0 : Number(imp.kwh_iniziali)
   const prezzoIniziale = prezzoDel(imp.data_inizio, prezzi)
-  const kwh = Number(imp.kwh_iniziali) + giorni.reduce((s, g) => s + g.kwh, 0)
-  const costo = Number(imp.kwh_iniziali) * prezzoIniziale + giorni.reduce((s, g) => s + g.costo, 0)
-  const km = Number(imp.km_iniziali) + giorni.reduce((s, g) => s + g.km, 0)
+  const kwh = kwhIniziali + giorni.reduce((s, g) => s + g.kwh, 0)
+  const costo = kwhIniziali * prezzoIniziale + giorni.reduce((s, g) => s + g.costo, 0)
+  const km = (nei ? 0 : Number(imp.km_iniziali)) + giorni.reduce((s, g) => s + g.km, 0)
   const kwhEsterni = giorni.reduce((s, g) => s + g.kwhEsterni, 0)
   const costoEsterni = giorni.reduce((s, g) => s + g.costoEsterni, 0)
   return { kwh, costo, kwhEsterni, costoEsterni, km, ...indici(costo, kwh, km) }

@@ -285,6 +285,7 @@ function ValoriIniziali({ dati, admin, onIndietro, onCambiato }: { dati: Dati; a
   const [km, setKm] = useState(String(imp.km_iniziali).replace('.', ','))
   const [kwh, setKwh] = useState(String(imp.kwh_iniziali).replace('.', ','))
   const [inizio, setInizio] = useState(imp.data_inizio)
+  const [ritiro, setRitiro] = useState(imp.data_ritiro ?? '')
   const [messaggio, setMessaggio] = useState<{ ok: boolean; testo: string } | null>(null)
   const [attesa, setAttesa] = useState(false)
 
@@ -293,9 +294,10 @@ function ValoriIniziali({ dati, admin, onIndietro, onCambiato }: { dati: Dati; a
     const k = parseNumero(km)
     const w = parseNumero(kwh)
     if (Number.isNaN(k) || Number.isNaN(w)) return setMessaggio({ ok: false, testo: 'Scrivi dei numeri, es. 40000 e 6500.' })
+    if (ritiro && ritiro >= inizio) return setMessaggio({ ok: false, testo: 'La data di ritiro deve essere prima dell\'installazione dello Shelly.' })
     setAttesa(true)
     try {
-      await salvaImpostazioni({ km_iniziali: k, kwh_iniziali: w, data_inizio: inizio })
+      await salvaImpostazioni({ km_iniziali: k, kwh_iniziali: w, data_inizio: inizio, data_ritiro: ritiro || null })
       await onCambiato()
       setMessaggio({ ok: true, testo: 'Salvato.' })
     } catch (err) {
@@ -310,7 +312,8 @@ function ValoriIniziali({ dati, admin, onIndietro, onCambiato }: { dati: Dati; a
       <TestataSottomenu titolo="Valori iniziali" onIndietro={onIndietro} />
       <p className="spiegazione">
         Quello che la Tesla aveva già percorso e ricaricato <strong>prima</strong> di installare lo Shelly. Vengono
-        sommati ai dati misurati: i kWh iniziali sono valorizzati con il primo prezzo dello storico.
+        sommati ai dati misurati: i kWh iniziali sono valorizzati con il primo prezzo dello storico. Se indichi la
+        data di ritiro dell'auto nuova, kWh e km iniziali compaiono in quel giorno anche nelle statistiche mensili.
       </p>
       <form className="scheda modulo" onSubmit={salva}>
         <label>
@@ -327,6 +330,11 @@ function ValoriIniziali({ dati, admin, onIndietro, onCambiato }: { dati: Dati; a
           Data di installazione dello Shelly
           <input type="date" value={inizio} max={oggi()} onChange={(e) => setInizio(e.target.value)} disabled={!admin} required />
           <small>Le misure dello Shelly contano da questo giorno</small>
+        </label>
+        <label>
+          Data di ritiro dell'auto <span className="tenue">(facoltativa)</span>
+          <input type="date" value={ritiro} max={inizio} onChange={(e) => setRitiro(e.target.value)} disabled={!admin} />
+          <small>Auto nuova: kWh e km iniziali vengono messi in questo giorno</small>
         </label>
         {messaggio && <p className={messaggio.ok ? 'successo' : 'errore'}>{messaggio.testo}</p>}
         {admin ? (

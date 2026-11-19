@@ -36,7 +36,7 @@ export async function caricaProfilo(userId: string): Promise<Profilo | null> {
 export async function caricaDati(): Promise<Dati> {
   if (demo) return (datiDemo ??= creaDatiDemo())
   const impostazioni = controlla<Impostazioni>(
-    await supabase.from('impostazioni').select('km_iniziali, kwh_iniziali, data_inizio').eq('id', 1).single(),
+    await supabase.from('impostazioni').select('*').eq('id', 1).single(),
   )
   const [prezzi, km, giorni, ricariche, ultima, esterne, tesla] = await Promise.all([
     supabase.from('prezzi').select('id, valido_dal, euro_kwh').order('valido_dal').then(controlla<Prezzo[]>),
@@ -74,9 +74,10 @@ export async function caricaDati(): Promise<Dati> {
   // i numeri "numeric" di Postgres arrivano come testo o numero: li rendo sempre numeri
   return {
     impostazioni: {
-      ...impostazioni,
       km_iniziali: Number(impostazioni.km_iniziali),
       kwh_iniziali: Number(impostazioni.kwh_iniziali),
+      data_inizio: impostazioni.data_inizio,
+      data_ritiro: impostazioni.data_ritiro ?? null, // null anche se la colonna non c'è ancora
     },
     prezzi: prezzi.map((p) => ({ ...p, euro_kwh: Number(p.euro_kwh) })),
     km: km.map((k) => ({ ...k, km: Number(k.km) })),

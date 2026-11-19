@@ -4,7 +4,7 @@ import type { Dati } from './types'
 
 function dati(parziali: Partial<Dati> = {}): Dati {
   return {
-    impostazioni: { km_iniziali: 10000, kwh_iniziali: 1800, data_inizio: '2026-11-01' },
+    impostazioni: { km_iniziali: 10000, kwh_iniziali: 1800, data_inizio: '2026-11-01', data_ritiro: null },
     prezzi: [
       { id: 'a', valido_dal: '2026-11-01', euro_kwh: 0.3 },
       { id: 'b', valido_dal: '2026-11-10', euro_kwh: 0.2 },
@@ -126,5 +126,23 @@ describe('ricariche esterne', () => {
     const g = calcolaGiorni(d, '2026-11-05')
     expect(g.find((x) => x.giorno === '2026-11-02')!.km).toBeCloseTo(50)
     expect(g.find((x) => x.giorno === '2026-11-04')!.km).toBeCloseTo(150)
+  })
+
+  it('mette kWh e km iniziali nel giorno di ritiro, senza contarli due volte', () => {
+    const d = dati({
+      impostazioni: { km_iniziali: 700, kwh_iniziali: 100, data_inizio: '2026-11-16', data_ritiro: '2026-11-10' },
+      prezzi: [{ id: 'a', valido_dal: '2026-11-16', euro_kwh: 0.25 }],
+      giorni: [{ giorno: '2026-11-17', kwh: 50 }],
+      km: [{ id: '1', data: '2026-11-18', km: 1000, created_by: 'x', fonte: 'manuale' }],
+    })
+    const g = calcolaGiorni(d, '2026-11-18')
+    expect(g[0]).toMatchObject({ giorno: '2026-11-10', kwh: 100, costo: 25, km: 700 })
+    const mese = raggruppa(g, 'mese')[0]
+    expect(mese.kwh).toBe(150)
+    expect(mese.km).toBeCloseTo(1000)
+    const t = calcolaTotali(d, g)
+    expect(t.kwh).toBe(150)
+    expect(t.costo).toBeCloseTo(37.5)
+    expect(t.km).toBeCloseTo(1000)
   })
 })

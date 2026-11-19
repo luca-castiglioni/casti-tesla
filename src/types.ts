@@ -9,6 +9,7 @@ export interface Impostazioni {
   km_iniziali: number
   kwh_iniziali: number
   data_inizio: string // AAAA-MM-GG: giorno di installazione dello Shelly
+  data_ritiro: string | null // giorno di ritiro dell'auto: lì vanno kWh e km iniziali (facoltativo)
 }
 
 export interface Prezzo {

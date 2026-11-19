@@ -27,7 +27,7 @@ export function creaDatiDemo(): Dati {
   }
   ricariche.reverse()
   return {
-    impostazioni: { km_iniziali: 18_400, kwh_iniziali: 3_150, data_inizio: inizio },
+    impostazioni: { km_iniziali: 18_400, kwh_iniziali: 3_150, data_inizio: inizio, data_ritiro: null },
     prezzi: [
       { id: crypto.randomUUID(), valido_dal: inizio, euro_kwh: 0.31 },
       { id: crypto.randomUUID(), valido_dal: aggiungiGiorni(fine, -50), euro_kwh: 0.27 },

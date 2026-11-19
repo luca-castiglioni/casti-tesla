@@ -32,7 +32,8 @@ in modo semplice, un passo alla volta. Metodo e passi di pubblicazione: skill `c
 - Viste: `consumi_giornalieri` (ora italiana), `ricariche` (letture con potenza > 300 W o > 10 Wh, pause ≤ 20 min).
 - Prezzo: storico `prezzi.valido_dal`; vale l'ultimo non successivo; prima del primo vale il primo (anche per i kWh iniziali).
 - Valori iniziali (`impostazioni`, una riga): `km_iniziali` = contachilometri all'installazione, `kwh_iniziali`, `data_inizio`
-  (i consumi prima di questa data sono ignorati).
+  (i consumi prima di questa data sono ignorati), facoltativo `data_ritiro` (auto nuova: kWh e km iniziali diventano
+  un giorno delle statistiche in quella data, al prezzo di `data_inizio`, e non si sommano di nuovo nei totali).
 - Km per giorno: tra due letture del contachilometri divisi in proporzione ai kWh; dopo l'ultima lettura nessuna stima
   (solo km reali: all'installazione la batteria era piena, quindi tutti i kWh = energia per i km percorsi).
 - Ricariche fuori casa (`ricariche_esterne`): Supercharger o altre colonnine, con importo pagato (kWh facoltativi).

@@ -112,6 +112,8 @@ create table if not exists public.impostazioni (
   updated_at    timestamptz not null default now()
 );
 insert into public.impostazioni (id) values (1) on conflict (id) do nothing;
+-- giorno di ritiro dell'auto nuova: kWh e km iniziali vengono messi in quel giorno nelle statistiche
+alter table public.impostazioni add column if not exists data_ritiro date;
 
 -- ---------- Viste di calcolo ----------
 -- Energia di ogni intervallo tra due letture (in Wh)
